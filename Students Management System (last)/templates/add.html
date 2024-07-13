@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thêm học viên - Hệ thống quản lí học viên</title>
+    <style>
+        h1{
+        color:black;
+        text-decoration: none;
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 15px;
+    }
+        input{
+            font-size: 20px;
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script> <!-- Thêm thư viện jquery($.ajax,...) -->
+</head>
+<body>
+    <h1 style="font-size: 100px;">Thêm học viên</h1>
+    <div style="font-size: 50px; margin-bottom: 20px;"> <!-- Màn hình thêm học sinh (Nhập) -->
+        <label for="Name">Nhập tên học viên:</label>
+        <input type="text" name="Name" id="Name"> <br> 
+        <label for="Grade">Nhập lớp của học viên:</label>
+        <input type="text" name="Grade" id="Grade"> <br> 
+        <label for="Id">Nhập mã số học viên:</label>
+        <input type="text" name="Id" id="Id"> <br> 
+    </div>
+    <button type="submit" onclick="add()" style="margin-left: 500px;font-size: 30px;">Thêm</button> <!-- Khi bấm vào sẽ thực hiện hàm add() và trả về kết quả-->
+    <button type="submit" onclick="back()" style="float: right;margin-top: 250px;font-size: 30px">Quay lại</button>
+
+    <script>
+        function add(){
+           var data = { //set giá trị data mà ng dùng đã nhập thông tin học viên từ bàn phím
+            Name: document.getElementById('Name').value,
+            Grade: document.getElementById('Grade').value,
+            Id: document.getElementById('Id').value,
+           }
+           $.ajax({
+                    url: 'add.html',
+                    type: 'POST',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json', //Dùng để khi post sang file home thì dữ liệu sẽ thành JSON
+                    success: function(reponse) {
+                        alert('Thêm thành công');
+                        window.location.href="/"; //Chuyển về màn hình chính (Home.html) khi thêm thành công
+                    },
+                    error: function() { //còn không thì báo lỗi
+                        alert('Đã xảy ra lỗi, vui lòng thử lại sau.');
+                    }
+                });
+        }
+        function back(){
+            history.back()
+        }
+    </script>
+</body>
+</html>

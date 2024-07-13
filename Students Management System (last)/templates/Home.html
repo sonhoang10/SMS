@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2024.2.514/js/kendo.all.min.js"></script>
+    <script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/themes/8.0.1/default/default-ocean-blue.css"> <!--Sử dụng thư viện kendo để làm bảng table-->
+    <title>Trang chủ - Hệ thống quản lí học viên</title>
+    <style>
+    a{  
+        text-decoration: none;
+        border: 1px black solid;
+        font-size: 30px;
+        background-color: #cfd9dd;
+        border-radius: 15px;
+        padding-left: 30px;
+        padding-right: 30px;
+        color: black;
+        font-family: 'Arial', sans-serif;
+        
+    }
+    h1{
+        text-decoration: none;
+        font-size: 60px;
+        text-align: center;
+        color:black;
+        text-align: center;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        background: linear-gradient(90deg, rgba(255,215,0,0.7),rgba(255,69,0,0.7)); /* Sử dụng linear-gradient để làm background color đẹp hơn với 2 màu sắc */
+        border-radius: 15px;
+        font-family: 'Arial', sans-serif; /*san-serif đc dùng để khi font Aria bị lỗi thì sans-serif sẽ thay thế */
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+    }
+    </style>
+</head>
+<body>
+    <h1>Hệ thống quản lí học viên</h1>
+    
+    <div style="margin: 20px 0px 20px 10px;">
+    <a href="add.html">Thêm học viên</a>
+    </div>
+
+    <div id="grid"></div> <!-- Tạo lập bảng hiển thị thông tin học viên sử dụng thư viên Kendo UI-->
+
+    <!-- Sử dụng Jinja2 để lấy dữ liệu học sinh từ DB-->
+    <p id="find" style="display: none;">{{ students | tojson }}</p> <!-- đoạn này dùng thẻ p để lấy và chuyển dữ liệu của students(trước đó đã student.all 
+trong file app.py) thành JSON  vì student lúc này là một đối tượng truy vấn từ cơ sở dữ liệu (1 loại dữ liệu của tiny DB) nên phải chuyển sang JSON-->
+    
+    <script>
+        $(document).ready(function (){ //Lệnh này được dùng để chỉ chạy sau khi toàn bộ tài liệu HTML đã được tải và cú pháp(syntax) đã đầy đủ
+            let text = document.getElementById('find').textContent; //Lấy dữ liệu từ thẻ <p> cụ thể là thông tin của học sinh
+            let students = JSON.parse(text); //Chuyển thành object
+                    
+            $("#grid").kendoGrid({
+                columns: [ //Đặt thông tin cho các cột vd: cột một là "Họ và Tên",cột 2 ...
+                    { field: "STT",title:"STT",},
+                    { field: "Tên",title:"Họ và tên",}, //field sài giống id cũng set value rồi schema->model->field->để định dạng dữ liệu
+                    { field: "Lớp" ,title:"Lớp",},
+                    { field: "Id",title:"Mã số",},
+                    { command: ["edit","destroy"], title: '&nbsp;', width: '250px' } //destroy là câu lệnh để xóa học sinh nhưng chỉ xóa tạm thời muốn xóa trg DB thì phải viết thêm
+                ],
+                dataSource:{ //dataSource:dữ liệu
+                    data:students, //Set data(dữ liệu) = students(students là thông tin của học sinh trg tiny DB)
+                    schema: {  //Schema là để mô tả kiểu dữ liệu muốn hiển thị str,num,float,..
+                        model: { //Model phải đi chung với schema
+                            id: "STT",
+                            fields: {
+                                STT: { type: "number",editable: false},
+                                Name: { type: "string" }, //Định dạng Name,Grade,Code thành chuỗi kí tự
+                                Grade: { type: "string" },
+                                Code: { type: "string" }
+                            }
+                        }
+                    },
+                    pageSize: 10, //Số lượng học sinh tối đa của 1 trang
+                },
+                toolbar: ["excel","search"], //Thêm các công cụ chức năng có sẵn trg thư viện Kendo UI như chuyển thành file excel và search
+                sortable: true,  //sortable là tính năng có sẵn trg thư viện giúp ng dùng sắp xếp thông tin 1 cách dễ dàng (a-z,1-10)
+                pageable: true,  //trang
+                editable: "inline", //Có thể sửa được trong bảng
+                
+                save: function(e) { // Thêm sự kiện save(lưu) khi chỉnh sửa xong
+                    let student = e.model; //set student = đối tượng đang chỉnh sửa
+                    $.ajax({
+                        url: "/students/update",    //tạo 1 url riêng để cập nhật
+                        type: "PUT", //Put được sử dụng để gửi dữ liệu đến máy chủ để thay thế hay cập nhật
+                        data: JSON.stringify(student),
+                        contentType: "application/json;",
+                        success: function(result) {
+                            alert("Đã cập nhật thông tin học viên có số thứ tự: " + student['STT']);
+                        },
+                        error: function(err) {
+                            alert("Đã xảy ra lỗi khi cập nhật thông tin học viên.");
+                        }
+                    });
+                },
+
+                remove: function(e) { //remove là câu lệnh khi mà bấm delete thì lệnh remove sẽ thực hiện câu lệnh bên trong nó
+                            //function(e) là học sinh bị xóa
+                            let student_stt = e.model['STT']; //set student_id thành mã số của học sinh bị xóa
+                            $.ajax({
+                                url: "/students/delete", //tạo 1 url riêng để xóa
+                                type: "DELETE", // lệnh này là 1 loại của ajax type dùng để xóa dữ liệu
+                                data: JSON.stringify({ STT: student_stt }), //đây là dữ liệu được gửi lên sever app.py stringfy sẽ chuyển từ 1 đối từ thành 1 chuỗi JSON
+                                contentType: "application/json;", //dữ liệu gửi đi là một chuỗi JSON
+                                success: function(result) { //Xóa thành công thì thông báo:
+                                    alert("Đã xóa học viên có mã số: " + e.model['Id']);
+                                },
+                                error: function(err) { //Lỗi thì sẽ báo lỗi
+                                    alert("Đã xảy ra lỗi khi xóa học viên.");
+                                }
+                            });
+                        }
+            });
+            //Đổi màu nền cho đẹp hơn
+            var grid = $("#grid").data("kendoGrid");
+            var altRows = grid.table.find("tr.k-alt");
+            altRows.css("background", "#afeeee");
+        });
+    </script>
+</body> 
+</html>
